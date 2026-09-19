@@ -501,40 +501,6 @@
         overflow: visible;
       }
 
-      .coverage-map-copy {
-        position: absolute;
-        z-index: 2;
-        top: 49%;
-        left: 52%;
-        width: 29%;
-        margin: 0;
-        color: var(--color-text);
-        font-family: var(--font-body);
-        font-size: clamp(0.56rem, 2.2vw, 0.72rem);
-        font-weight: 400;
-        letter-spacing: 0.025em;
-        line-height: 1.28;
-        text-align: center;
-        text-shadow: 0 0.12rem 0.6rem #000, 0 0 0.9rem #000;
-        text-transform: uppercase;
-        transform: translate(-50%, -50%);
-        pointer-events: none;
-      }
-
-      .coverage-map-copy span,
-      .coverage-map-copy strong {
-        display: block;
-      }
-
-      .coverage-map-copy strong {
-        margin-top: 0.12rem;
-        color: #fff;
-        font-size: 1.08em;
-        font-weight: 600;
-        letter-spacing: 0.045em;
-        text-shadow: 0 0 0.72rem rgba(255, 34, 51, 0.42), 0 0.12rem 0.6rem #000;
-      }
-
       .coverage-map-outline {
         fill: none;
         stroke: var(--color-accent-bright);
@@ -904,6 +870,14 @@
               <circle class="coverage-pin-ring" r="12" />
               <use href="#coverage-pin-shape" />
             </g>
+            <g class="coverage-pin-marker" transform="translate(350 225)">
+              <circle class="coverage-pin-ring" r="12" />
+              <use href="#coverage-pin-shape" />
+            </g>
+            <g class="coverage-pin-marker" transform="translate(445 225)">
+              <circle class="coverage-pin-ring" r="12" />
+              <use href="#coverage-pin-shape" />
+            </g>
             <g class="coverage-pin-marker" transform="translate(545 265)">
               <circle class="coverage-pin-ring" r="12" />
               <use href="#coverage-pin-shape" />
@@ -918,12 +892,6 @@
               <use href="#coverage-pin-shape" transform="scale(1.55)" />
             </g>
           </svg>
-
-          <p class="coverage-map-copy">
-            <span>Atendemos</span>
-            <span>todo o estado de</span>
-            <strong>São Paulo</strong>
-          </p>
         </div>
       </section>
 
