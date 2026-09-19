@@ -331,20 +331,15 @@
         position: relative;
         isolation: isolate;
         display: grid;
-        min-height: 7.5rem;
-        grid-template-columns: 3.35rem minmax(0, 1fr);
+        min-height: 8.35rem;
+        grid-template-columns: 3rem minmax(0, 1fr);
         align-items: center;
-        gap: 1rem;
-        padding: 1rem 1.15rem;
+        gap: 0.75rem;
+        padding: 1rem calc(38% + 0.7rem) 1rem 1rem;
         overflow: hidden;
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 1rem;
         background-color: #0b0a0b;
-        background-image:
-          linear-gradient(90deg, rgba(8, 7, 8, 0.98) 0%, rgba(8, 7, 8, 0.89) 58%, rgba(8, 7, 8, 0.74) 100%),
-          var(--service-image, radial-gradient(circle at 86% 24%, rgba(255, 255, 255, 0.075), transparent 38%));
-        background-position: center;
-        background-size: cover;
         box-shadow:
           -0.7rem 0 1.8rem -1.05rem rgba(255, 34, 51, 0.78),
           0.7rem 0 1.8rem -1.05rem rgba(255, 34, 51, 0.78),
@@ -354,7 +349,7 @@
 
       .service-card::after {
         position: absolute;
-        z-index: -1;
+        z-index: 1;
         inset: 0;
         background: linear-gradient(90deg, rgba(216, 19, 36, 0.08), transparent 17%, transparent 83%, rgba(216, 19, 36, 0.08));
         content: "";
@@ -362,31 +357,86 @@
       }
 
       .service-icon {
+        position: relative;
+        z-index: 2;
         display: grid;
-        width: 3.35rem;
-        height: 3.35rem;
+        width: 3rem;
+        height: 3rem;
         place-items: center;
         color: var(--color-accent-bright);
         filter: drop-shadow(0 0 0.75rem rgba(255, 34, 51, 0.24));
       }
 
       .service-icon svg {
-        width: 2.8rem;
-        height: 2.8rem;
+        width: 2.65rem;
+        height: 2.65rem;
+      }
+
+      .service-copy {
+        position: relative;
+        z-index: 2;
+        min-width: 0;
       }
 
       .service-card h3 {
         min-width: 0;
-        max-width: 15rem;
         margin: 0;
         color: var(--color-text);
         font-family: var(--font-display);
-        font-size: clamp(1.55rem, 7vw, 1.82rem);
+        font-size: clamp(1.3rem, 5.8vw, 1.65rem);
         font-weight: 400;
         letter-spacing: 0.045em;
         line-height: 1.02;
         text-align: left;
         text-transform: uppercase;
+      }
+
+      .service-details {
+        margin: 0.45rem 0 0;
+        color: rgba(255, 255, 255, 0.7);
+        font-family: var(--font-body);
+        font-size: clamp(0.59rem, 2.55vw, 0.71rem);
+        font-weight: 400;
+        letter-spacing: -0.005em;
+        line-height: 1.38;
+      }
+
+      .service-details span {
+        display: block;
+        white-space: nowrap;
+      }
+
+      .service-media {
+        position: absolute;
+        z-index: 0;
+        inset: 0 0 0 auto;
+        width: 38%;
+        overflow: hidden;
+        border-radius: 0.82rem 0.95rem 0.95rem 0.82rem;
+        background-image:
+          linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0) 48%),
+          var(--service-image, linear-gradient(135deg, #29292c 0%, #18181a 54%, #0d0d0e 100%));
+        background-position: center;
+        background-size: cover;
+        box-shadow: inset 0.8rem 0 1.5rem rgba(0, 0, 0, 0.25);
+      }
+
+      .service-media::before {
+        position: absolute;
+        z-index: 1;
+        inset: 0 auto 0 0;
+        width: 58%;
+        background: linear-gradient(90deg, #0b0a0b 0%, rgba(11, 10, 11, 0.8) 34%, rgba(11, 10, 11, 0.25) 74%, transparent 100%);
+        content: "";
+        pointer-events: none;
+      }
+
+      .service-media::after {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 78% 28%, rgba(255, 255, 255, 0.08), transparent 42%);
+        content: "";
+        pointer-events: none;
       }
 
       @keyframes cta-glow {
@@ -399,25 +449,80 @@
         }
       }
 
+      @media (max-width: 27rem) {
+        .service-card {
+          grid-template-columns: 2.5rem minmax(0, 1fr);
+          gap: 0.4rem;
+          padding: 0.95rem calc(37% + 0.5rem) 0.95rem 0.7rem;
+        }
+
+        .service-icon {
+          width: 2.5rem;
+          height: 2.5rem;
+        }
+
+        .service-icon svg {
+          width: 2.25rem;
+          height: 2.25rem;
+        }
+
+        .service-card h3 {
+          font-size: 1.35rem;
+        }
+
+        .service-details {
+          font-size: 0.6rem;
+          letter-spacing: -0.008em;
+        }
+
+        .service-media {
+          width: 37%;
+        }
+      }
+
       @media (max-width: 21.25rem) {
         .secondary-actions {
           grid-template-columns: 1fr;
         }
 
         .service-card {
-          grid-template-columns: 3rem minmax(0, 1fr);
-          gap: 0.75rem;
-          padding-inline: 0.9rem;
+          min-height: 8.35rem;
+          grid-template-columns: 2rem minmax(0, 1fr);
+          gap: 0.25rem;
+          padding: 0.85rem calc(36% + 0.25rem) 0.85rem 0.5rem;
         }
 
         .service-icon {
-          width: 3rem;
-          height: 3rem;
+          width: 2rem;
+          height: 2rem;
         }
 
         .service-icon svg {
-          width: 2.55rem;
-          height: 2.55rem;
+          width: 1.8rem;
+          height: 1.8rem;
+        }
+
+        .service-card h3 {
+          font-size: 1.18rem;
+        }
+
+        .service-details {
+          font-size: 0.54rem;
+          letter-spacing: -0.012em;
+        }
+
+        .service-details span {
+          white-space: nowrap;
+        }
+
+        .service-media {
+          width: 36%;
+        }
+      }
+
+      @media (max-width: 18.75rem) {
+        .service-details span {
+          white-space: normal;
         }
       }
 
@@ -519,7 +624,7 @@
 
         <!--
           IMAGENS DOS SERVIÇOS:
-          Quando tiver as imagens, adicione em cada card:
+          Os blocos à direita são placeholders. Quando tiver as imagens, adicione em cada card:
           style="--service-image: url('sua-imagem.jpg')"
         -->
         <ul class="services-list">
@@ -535,7 +640,14 @@
                 <path d="m21 6 3-3 3 3M24 4v5" />
               </svg>
             </span>
-            <h3>Eventos Sociais</h3>
+            <div class="service-copy">
+              <h3>Eventos Sociais</h3>
+              <p class="service-details">
+                <span>Casamentos, Aniversários,</span>
+                <span>Chá Revelação e Debutantes</span>
+              </p>
+            </div>
+            <div class="service-media" aria-hidden="true"></div>
           </li>
 
           <li class="service-card service-card-advertising">
@@ -546,7 +658,10 @@
                 <path d="M42 18a10 10 0 0 1 0 12" />
               </svg>
             </span>
-            <h3>Publicidade e Institucional</h3>
+            <div class="service-copy">
+              <h3>Publicidade e Institucional</h3>
+            </div>
+            <div class="service-media" aria-hidden="true"></div>
           </li>
 
           <li class="service-card service-card-real-estate">
@@ -558,7 +673,10 @@
                 <path d="M34 9v7" />
               </svg>
             </span>
-            <h3>Imóveis e Obras</h3>
+            <div class="service-copy">
+              <h3>Imóveis e Obras</h3>
+            </div>
+            <div class="service-media" aria-hidden="true"></div>
           </li>
         </ul>
       </section>
