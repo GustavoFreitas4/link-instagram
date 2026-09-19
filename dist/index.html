@@ -171,17 +171,13 @@
 
       .brand-name {
         margin: 0;
+        color: var(--color-text);
         font-family: var(--font-display);
         font-size: clamp(3.55rem, 17vw, 5rem);
         font-weight: 400;
         letter-spacing: 0.04em;
         line-height: 0.9;
         text-transform: uppercase;
-      }
-
-      .brand-name span {
-        color: var(--color-accent-bright);
-        text-shadow: 0 0 1.5rem rgba(255, 34, 51, 0.2);
       }
 
       .brand-lockup {
@@ -209,11 +205,12 @@
       .brand-capture {
         display: flex;
         width: 100%;
-        justify-content: space-between;
+        justify-content: center;
+        gap: 0.4rem;
         margin: 0.3rem 0 0;
         color: var(--color-muted);
         font-size: 0.64rem;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.015em;
         line-height: 1.2;
       }
 
@@ -668,7 +665,7 @@
         </div>
 
         <!-- TEXTOS PRINCIPAIS: edite o nome e o subtítulo nesta área -->
-        <h1 class="brand-name" id="titulo-principal">Dosky <span>Drone</span></h1>
+        <h1 class="brand-name" id="titulo-principal">Gustavo Freitas</h1>
         <div class="brand-lockup">
           <p class="brand-subtitle">Produção Audiovisual</p>
           <p class="brand-capture" aria-label="Captação terrestre e aérea">
