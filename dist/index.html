@@ -487,22 +487,9 @@
         position: relative;
         isolation: isolate;
         margin-top: 1.35rem;
-        padding: 0.35rem 0 0.2rem;
-        overflow: hidden;
-        border-block: 1px solid rgba(255, 255, 255, 0.07);
-        background:
-          radial-gradient(circle at 73% 73%, rgba(216, 19, 36, 0.16), transparent 25%),
-          radial-gradient(circle at 48% 42%, rgba(255, 255, 255, 0.035), transparent 44%),
-          linear-gradient(180deg, rgba(15, 13, 14, 0.82), rgba(4, 4, 4, 0.96));
-      }
-
-      .coverage-map::after {
-        position: absolute;
-        z-index: 3;
-        inset: 0;
-        background: radial-gradient(ellipse at center, transparent 48%, rgba(3, 3, 3, 0.42) 100%);
-        content: "";
-        pointer-events: none;
+        padding: 0;
+        overflow: visible;
+        background: transparent;
       }
 
       .coverage-map svg {
@@ -516,18 +503,19 @@
 
       .coverage-map-copy {
         position: absolute;
-        z-index: 4;
-        top: 51%;
+        z-index: 2;
+        top: 49%;
         left: 52%;
-        width: 34%;
+        width: 29%;
         margin: 0;
         color: var(--color-text);
-        font-size: clamp(0.67rem, 2.9vw, 0.88rem);
-        font-weight: 700;
-        letter-spacing: 0.035em;
-        line-height: 1.17;
+        font-family: var(--font-body);
+        font-size: clamp(0.56rem, 2.2vw, 0.72rem);
+        font-weight: 400;
+        letter-spacing: 0.025em;
+        line-height: 1.28;
         text-align: center;
-        text-shadow: 0 0.15rem 0.75rem #000, 0 0 1rem #000;
+        text-shadow: 0 0.12rem 0.6rem #000, 0 0 0.9rem #000;
         text-transform: uppercase;
         transform: translate(-50%, -50%);
         pointer-events: none;
@@ -539,11 +527,12 @@
       }
 
       .coverage-map-copy strong {
-        margin-top: 0.16rem;
+        margin-top: 0.12rem;
         color: #fff;
-        font-size: 1.18em;
-        letter-spacing: 0.07em;
-        text-shadow: 0 0 0.8rem rgba(255, 34, 51, 0.56), 0 0.15rem 0.75rem #000;
+        font-size: 1.08em;
+        font-weight: 600;
+        letter-spacing: 0.045em;
+        text-shadow: 0 0 0.72rem rgba(255, 34, 51, 0.42), 0 0.12rem 0.6rem #000;
       }
 
       .coverage-map-outline {
@@ -554,17 +543,23 @@
         filter: url(#coverage-map-glow);
       }
 
-      .coverage-pin {
+      .coverage-pin-marker {
         color: var(--color-accent-bright);
         filter: url(#coverage-pin-glow);
       }
 
-      .coverage-primary-ring {
-        fill: none;
+      .coverage-pin-ring {
+        fill: rgba(216, 19, 36, 0.1);
         stroke: var(--color-accent-bright);
-        stroke-width: 3;
-        opacity: 0.58;
+        stroke-width: 2;
+        opacity: 0.68;
         vector-effect: non-scaling-stroke;
+      }
+
+      .coverage-pin-marker--primary .coverage-pin-ring {
+        fill: rgba(216, 19, 36, 0.13);
+        stroke-width: 3;
+        opacity: 0.72;
         animation: coverage-pin-pulse 2.4s ease-in-out infinite;
       }
 
@@ -893,15 +888,35 @@
             <use href="#sp-state-shape" fill="url(#coverage-map-grid)" />
             <use class="coverage-map-outline" href="#sp-state-shape" />
 
-            <use class="coverage-pin" href="#coverage-pin-shape" transform="translate(308.5 99.3)" />
-            <use class="coverage-pin" href="#coverage-pin-shape" transform="translate(445 80)" />
-            <use class="coverage-pin" href="#coverage-pin-shape" transform="translate(168.5 190.7)" />
-            <use class="coverage-pin" href="#coverage-pin-shape" transform="translate(268 197)" />
-            <use class="coverage-pin" href="#coverage-pin-shape" transform="translate(551.1 264.6)" />
-            <use class="coverage-pin" href="#coverage-pin-shape" transform="translate(415 355.6)" />
+            <g class="coverage-pin-marker" transform="translate(300 105)">
+              <circle class="coverage-pin-ring" r="12" />
+              <use href="#coverage-pin-shape" />
+            </g>
+            <g class="coverage-pin-marker" transform="translate(430 105)">
+              <circle class="coverage-pin-ring" r="12" />
+              <use href="#coverage-pin-shape" />
+            </g>
+            <g class="coverage-pin-marker" transform="translate(170 195)">
+              <circle class="coverage-pin-ring" r="12" />
+              <use href="#coverage-pin-shape" />
+            </g>
+            <g class="coverage-pin-marker" transform="translate(268 197)">
+              <circle class="coverage-pin-ring" r="12" />
+              <use href="#coverage-pin-shape" />
+            </g>
+            <g class="coverage-pin-marker" transform="translate(545 265)">
+              <circle class="coverage-pin-ring" r="12" />
+              <use href="#coverage-pin-shape" />
+            </g>
+            <g class="coverage-pin-marker" transform="translate(410 335)">
+              <circle class="coverage-pin-ring" r="12" />
+              <use href="#coverage-pin-shape" />
+            </g>
 
-            <circle class="coverage-primary-ring" cx="520" cy="318.3" r="22" />
-            <use class="coverage-pin" href="#coverage-pin-shape" transform="translate(520 318.3) scale(1.55)" />
+            <g class="coverage-pin-marker coverage-pin-marker--primary" transform="translate(510 290)">
+              <circle class="coverage-pin-ring" r="22" />
+              <use href="#coverage-pin-shape" transform="scale(1.55)" />
+            </g>
           </svg>
 
           <p class="coverage-map-copy">
