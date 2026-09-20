@@ -292,6 +292,33 @@
         background: rgba(216, 19, 36, 0.065);
       }
 
+      .signature-mark {
+        display: flex;
+        width: 100%;
+        justify-content: center;
+        margin: 2.25rem auto 0;
+        padding: 0.25rem 0 max(0.5rem, env(safe-area-inset-bottom));
+      }
+
+      .signature-art {
+        position: relative;
+        width: min(86%, 18rem);
+        aspect-ratio: 3.45 / 1;
+        overflow: hidden;
+      }
+
+      .signature-art img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: block;
+        width: 100%;
+        height: auto;
+        mix-blend-mode: screen;
+        opacity: 0.96;
+        transform: translateY(-35.4%);
+      }
+
       .services {
         margin-top: 2.75rem;
         text-align: left;
@@ -906,6 +933,19 @@
           </a>
         </div>
       </nav>
+
+      <footer class="signature-mark">
+        <div class="signature-art">
+          <img
+            src="gustavo-freitas-signature.png"
+            width="1254"
+            height="1254"
+            alt="Assinatura de Gustavo Freitas, Videomaker"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      </footer>
 
     </main>
   </body>
