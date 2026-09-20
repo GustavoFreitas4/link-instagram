@@ -480,6 +480,18 @@
         line-height: 1.55;
       }
 
+      .coverage-subtitle-highlight {
+        display: inline-block;
+        color: #ffffff;
+        font-family: var(--font-display);
+        font-size: 1.14em;
+        font-weight: 400;
+        letter-spacing: 0.035em;
+        line-height: 1;
+        text-shadow: 0 0 0.85rem rgba(255, 255, 255, 0.14);
+        white-space: nowrap;
+      }
+
       .coverage-map {
         position: relative;
         isolation: isolate;
@@ -771,7 +783,10 @@
           <span>Onde</span>
           <strong>Atendemos?</strong>
         </h2>
-        <p class="coverage-subtitle">Atendemos toda Baixada Santista e São Paulo</p>
+        <p class="coverage-subtitle">
+          Atendemos toda <span class="coverage-subtitle-highlight">Baixada Santista</span> e estado de
+          <span class="coverage-subtitle-highlight">São Paulo</span>
+        </p>
 
         <div class="coverage-map">
           <!-- Contorno baseado na API de Malhas Geográficas do IBGE, UF 35 (São Paulo). -->
