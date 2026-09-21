@@ -146,6 +146,7 @@
       }
 
       .logo-wrap {
+        position: relative;
         display: grid;
         width: 8.75rem;
         height: 8.75rem;
@@ -159,6 +160,20 @@
           0 0 0 0.31rem rgba(255, 34, 51, 0.2),
           0 0 1.7rem 0.22rem rgba(255, 34, 51, 0.36),
           0 1.25rem 3.5rem rgba(216, 19, 36, 0.22);
+      }
+
+      .logo-wrap::after {
+        content: "";
+        position: absolute;
+        right: 0.68rem;
+        bottom: 0.68rem;
+        z-index: 2;
+        width: 1.1rem;
+        height: 1.1rem;
+        border: 0.16rem solid var(--color-bg);
+        border-radius: 50%;
+        background: #25d366;
+        box-shadow: 0 0 0.65rem rgba(37, 211, 102, 0.55);
       }
 
       .brand-logo {
@@ -744,7 +759,7 @@
               </svg>
             </span>
             <div class="service-copy">
-              <h3>Eventos Sociais</h3>
+              <h3>Eventos</h3>
               <p class="service-details">
                 <span>Casamentos, Aniversários,</span>
                 <span>Chá Revelação e Debutantes</span>
@@ -771,7 +786,7 @@
               </svg>
             </span>
             <div class="service-copy">
-              <h3>Publicidade e Institucional</h3>
+              <h3>Marcas e Empresas</h3>
             </div>
             <div class="service-media" aria-hidden="true">
               <img
