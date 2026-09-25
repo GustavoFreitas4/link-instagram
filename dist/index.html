@@ -42,6 +42,7 @@
         --color-accent: #0d5c63;
         --color-accent-bright: #2b929b;
         --color-accent-glow: rgba(43, 146, 155, 0.24);
+        --color-signature-glow: rgba(43, 146, 155, 0.42);
         --color-text: #ffffff;
         --color-muted: #b0b0b0;
         --color-border: rgba(255, 255, 255, 0.13);
@@ -337,11 +338,11 @@
       .signature-art::before {
         position: absolute;
         z-index: 0;
-        inset: 18% 5% 12%;
-        border-radius: 50%;
-        background: var(--color-accent-glow);
+        inset: 14% 0 9%;
+        border-radius: 42%;
+        background: var(--color-signature-glow);
         content: "";
-        filter: blur(1.25rem);
+        filter: blur(1.1rem);
         pointer-events: none;
       }
 
@@ -515,7 +516,6 @@
       .coverage {
         margin-top: 0.75rem;
         padding-top: 0.7rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.075);
         text-align: left;
       }
 
@@ -871,7 +871,7 @@
                 <stop offset="1" stop-color="#050606" />
               </linearGradient>
               <pattern id="coverage-map-grid" width="25" height="25" patternUnits="userSpaceOnUse" patternTransform="rotate(18)">
-                <path d="M0 0H25V25" fill="none" stroke="#2b929b" stroke-width="1" opacity="0.25" />
+                <path d="M0 0H25V25" fill="none" stroke="#2b929b" stroke-width="1.5" opacity="0.25" />
               </pattern>
               <filter id="coverage-map-glow" x="-30%" y="-30%" width="160%" height="160%">
                 <feGaussianBlur stdDeviation="4" result="blur" />
