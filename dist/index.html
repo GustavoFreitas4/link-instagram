@@ -296,7 +296,7 @@
       }
 
       .button-primary svg {
-        color: #86c9cd;
+        color: #fff;
       }
 
       .button-primary:hover {
@@ -338,11 +338,15 @@
       .signature-art::before {
         position: absolute;
         z-index: 0;
-        inset: 14% 0 9%;
-        border-radius: 42%;
-        background: var(--color-signature-glow);
+        inset: 0;
+        background: radial-gradient(
+          ellipse 50% 50% at 50% 52%,
+          var(--color-signature-glow) 0%,
+          rgba(43, 146, 155, 0.34) 32%,
+          rgba(43, 146, 155, 0.16) 62%,
+          transparent 100%
+        );
         content: "";
-        filter: blur(1.1rem);
         pointer-events: none;
       }
 
