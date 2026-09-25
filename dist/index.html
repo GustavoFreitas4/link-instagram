@@ -41,6 +41,7 @@
         --color-surface: #151719;
         --color-accent: #0d5c63;
         --color-accent-bright: #2b929b;
+        --color-accent-glow: rgba(43, 146, 155, 0.24);
         --color-text: #ffffff;
         --color-muted: #b0b0b0;
         --color-border: rgba(255, 255, 255, 0.13);
@@ -327,15 +328,28 @@
 
       .signature-art {
         position: relative;
+        isolation: isolate;
         width: min(86%, 18rem);
         aspect-ratio: 3.45 / 1;
         overflow: hidden;
+      }
+
+      .signature-art::before {
+        position: absolute;
+        z-index: 0;
+        inset: 18% 5% 12%;
+        border-radius: 50%;
+        background: var(--color-accent-glow);
+        content: "";
+        filter: blur(1.25rem);
+        pointer-events: none;
       }
 
       .signature-art img {
         position: absolute;
         top: 0;
         left: 0;
+        z-index: 1;
         display: block;
         width: 100%;
         height: auto;
@@ -390,6 +404,7 @@
         border-radius: 1rem;
         background-color: var(--color-surface);
         box-shadow:
+          0 0 1.25rem 0.08rem var(--color-accent-glow),
           0 0.8rem 1.7rem -1.05rem rgba(0, 0, 0, 0.85),
           inset 1px 0 rgba(255, 255, 255, 0.025),
           inset -1px 0 rgba(255, 255, 255, 0.025);
@@ -563,6 +578,7 @@
         width: 100%;
         height: auto;
         overflow: visible;
+        filter: drop-shadow(0 0 1.25rem var(--color-accent-glow));
       }
 
       .coverage-map-outline {
