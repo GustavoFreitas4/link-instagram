@@ -389,21 +389,26 @@
       }
 
       .services-title {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.22em;
+        display: grid;
+        justify-items: start;
         margin: 0 0 0.75rem;
         font-family: var(--font-display);
         font-size: clamp(2.55rem, 11vw, 3.35rem);
         font-weight: 400;
         letter-spacing: 0.035em;
-        line-height: 0.92;
+        line-height: 0.84;
         text-transform: uppercase;
       }
 
       .services-title span {
+        color: var(--color-text);
+      }
+
+      .services-title strong {
         color: var(--color-accent-bright);
+        font-weight: inherit;
         text-shadow: 0 0 1.35rem rgba(43, 146, 155, 0.22);
+        white-space: nowrap;
       }
 
       .services-list {
@@ -786,7 +791,10 @@
       </header>
 
       <section class="services" aria-labelledby="services-title">
-        <h2 class="services-title" id="services-title">Coberturas que <span>Produzimos</span></h2>
+        <h2 class="services-title" id="services-title">
+          <span>Coberturas</span>
+          <strong>Que Produzimos</strong>
+        </h2>
 
         <!--
           IMAGENS DOS SERVIÇOS:
@@ -835,7 +843,6 @@
             </span>
             <div class="service-copy">
               <h3>Marcas e Empresas</h3>
-              <p class="service-details">Vídeos comerciais, institucionais e promocionais</p>
             </div>
             <div class="service-media" aria-hidden="true">
               <img
@@ -860,7 +867,6 @@
             </span>
             <div class="service-copy">
               <h3>Imóveis e Obras</h3>
-              <p class="service-details">Imóveis e projetos apresentados de todos os ângulos</p>
             </div>
             <div class="service-media" aria-hidden="true">
               <img
