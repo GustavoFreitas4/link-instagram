@@ -1924,7 +1924,15 @@
           controlsPointerId: null,
           controlsPointerTarget: null,
           seekPointerId: null,
+          isScrubbing: false,
+          scrubTime: 0,
           suppressPlayerClick: false,
+          rangeSupport: null,
+          playerFetchController: null,
+          playerLoadToken: 0,
+          playerBlobUrl: null,
+          playerOriginalSrc: "",
+          playerPreparing: false,
         };
 
         const filmIconMarkup = `
@@ -1948,6 +1956,7 @@
         };
 
         const getPlaybackDuration = (media = player, video = state.currentVideo) => {
+          if (media.readyState < HTMLMediaElement.HAVE_METADATA) return 0;
           const actualDuration = Number.isFinite(media.duration) && media.duration > 0 ? media.duration : 0;
           const configuredEnd = Number(video?.endAt);
 
@@ -1994,9 +2003,21 @@
 
         const seekTo = (value) => {
           const duration = getPlaybackDuration();
-          if (!(duration > 0) || !Number.isFinite(value)) return;
-          player.currentTime = Math.min(duration, Math.max(0, value));
+          if (
+            player.readyState < HTMLMediaElement.HAVE_METADATA ||
+            !(duration > 0) ||
+            !Number.isFinite(value)
+          ) return false;
+
+          const target = Math.min(duration, Math.max(0, value));
+          if (state.isScrubbing) state.scrubTime = target;
+          try {
+            player.currentTime = target;
+          } catch {
+            return false;
+          }
           updatePlayerInterface();
+          return true;
         };
 
         const seekBy = (seconds) => {
@@ -2010,13 +2031,16 @@
           if (!(duration > 0) || !(bounds.width > 0)) return;
 
           const ratio = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
-          seekTo(ratio * duration);
+          const target = ratio >= 1 ? Math.max(0, duration - 0.05) : ratio * duration;
+          state.scrubTime = target;
+          seekTo(target);
         };
 
         const updatePlayerInterface = () => {
           const duration = getPlaybackDuration();
           const rawCurrentTime = Number.isFinite(player.currentTime) ? player.currentTime : 0;
-          const currentTime = Math.min(rawCurrentTime, duration || rawCurrentTime);
+          const interfaceTime = state.isScrubbing ? state.scrubTime : rawCurrentTime;
+          const currentTime = Math.min(interfaceTime, duration || interfaceTime);
           const progress = duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
           const label = state.currentVideo?.label || "vídeo";
 
@@ -2041,13 +2065,223 @@
           muteButton.setAttribute("aria-label", hasSound ? `Desativar som de ${label}` : `Ativar som de ${label}`);
         };
 
+        const showPlayerStatus = (message) => {
+          playerStatus.textContent = message;
+          playerStatus.hidden = false;
+        };
+
+        const readResponseBlob = async (response, token) => {
+          const contentType = response.headers.get("content-type") || "video/mp4";
+          const totalBytes = Number(response.headers.get("content-length")) || 0;
+
+          if (!response.body) {
+            showPlayerStatus("Preparando vídeo…");
+            const blob = await response.blob();
+            if (token !== state.playerLoadToken) throw new DOMException("Carregamento cancelado", "AbortError");
+            return blob.type ? blob : new Blob([blob], { type: contentType });
+          }
+
+          const reader = response.body.getReader();
+          const chunks = [];
+          let receivedBytes = 0;
+          let lastPercent = -1;
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (token !== state.playerLoadToken) {
+              await reader.cancel();
+              throw new DOMException("Carregamento cancelado", "AbortError");
+            }
+            if (done) break;
+
+            chunks.push(value);
+            receivedBytes += value.byteLength;
+            if (totalBytes > 0) {
+              const percent = Math.min(100, Math.round((receivedBytes / totalBytes) * 100));
+              if (percent !== lastPercent) {
+                lastPercent = percent;
+                showPlayerStatus(`Preparando vídeo… ${percent}%`);
+              }
+            }
+          }
+
+          return new Blob(chunks, { type: contentType });
+        };
+
+        const waitForPlayerMetadata = (media, token, signal) => new Promise((resolve, reject) => {
+          if (media.readyState >= HTMLMediaElement.HAVE_METADATA) {
+            resolve();
+            return;
+          }
+
+          const cleanup = () => {
+            media.removeEventListener("loadedmetadata", handleMetadata);
+            media.removeEventListener("error", handleError);
+            signal?.removeEventListener("abort", handleAbort);
+          };
+          const handleMetadata = () => {
+            cleanup();
+            if (token === state.playerLoadToken) resolve();
+            else reject(new DOMException("Carregamento cancelado", "AbortError"));
+          };
+          const handleError = () => {
+            cleanup();
+            reject(new Error("Não foi possível ler os metadados do vídeo."));
+          };
+          const handleAbort = () => {
+            cleanup();
+            reject(new DOMException("Carregamento cancelado", "AbortError"));
+          };
+
+          media.addEventListener("loadedmetadata", handleMetadata, { once: true });
+          media.addEventListener("error", handleError, { once: true });
+          signal?.addEventListener("abort", handleAbort, { once: true });
+        });
+
+        const releasePreparedPlayerSource = () => {
+          state.playerFetchController?.abort();
+          state.playerFetchController = null;
+
+          const blobUrl = state.playerBlobUrl;
+          if (
+            state.activePreview &&
+            state.playerOriginalSrc &&
+            (blobUrl || state.activePreview.currentSrc !== state.playerOriginalSrc)
+          ) {
+            state.activePreview.pause();
+            state.activePreview.src = state.playerOriginalSrc;
+            state.activePreview.load();
+          }
+          if (blobUrl) URL.revokeObjectURL(blobUrl);
+
+          state.playerBlobUrl = null;
+          state.playerOriginalSrc = "";
+          state.playerPreparing = false;
+        };
+
+        const preparePlayerSource = async (video, resumeTime) => {
+          const token = ++state.playerLoadToken;
+          const controller = new AbortController();
+          state.playerFetchController?.abort();
+          state.playerFetchController = controller;
+          state.playerOriginalSrc = player.currentSrc || new URL(video.src, window.location.href).href;
+          state.playerPreparing = true;
+
+          player.pause();
+          player.muted = true;
+          player.defaultMuted = true;
+          setControlsEnabled(false);
+          showPlayerStatus("Preparando vídeo…");
+
+          try {
+            if (state.rangeSupport === true) {
+              state.playerPreparing = false;
+              playerStatus.hidden = player.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+              setControlsEnabled(player.readyState >= HTMLMediaElement.HAVE_METADATA);
+              attemptPlayerPlayback();
+              return;
+            }
+
+            galleryGrid.querySelectorAll("video").forEach((preview) => {
+              preview.pause();
+              preview.removeAttribute("src");
+              preview.load();
+            });
+
+            const headers = state.rangeSupport === null ? { Range: "bytes=0-0" } : undefined;
+            let response = await fetch(state.playerOriginalSrc, {
+              cache: state.rangeSupport === null ? "no-store" : "force-cache",
+              credentials: "same-origin",
+              headers,
+              signal: controller.signal,
+            });
+
+            if (!response.ok) throw new Error(`Falha ao carregar o vídeo (${response.status}).`);
+
+            if (state.rangeSupport === null) {
+              const contentRange = response.headers.get("content-range") || "";
+              state.rangeSupport = response.status === 206 && /^bytes\s+0-0\/\d+$/i.test(contentRange);
+
+              if (state.rangeSupport) {
+                await response.body?.cancel();
+                if (token !== state.playerLoadToken) return;
+                state.playerPreparing = false;
+                playerStatus.hidden = player.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+                setControlsEnabled(player.readyState >= HTMLMediaElement.HAVE_METADATA);
+                attemptPlayerPlayback();
+                return;
+              }
+
+              if (response.status === 206) {
+                await response.body?.cancel();
+                response = await fetch(state.playerOriginalSrc, {
+                  cache: "force-cache",
+                  credentials: "same-origin",
+                  signal: controller.signal,
+                });
+                if (!response.ok) throw new Error(`Falha ao carregar o vídeo (${response.status}).`);
+              }
+            }
+
+            const blob = await readResponseBlob(response, token);
+            if (token !== state.playerLoadToken) return;
+
+            const blobUrl = URL.createObjectURL(blob);
+            if (token !== state.playerLoadToken) {
+              URL.revokeObjectURL(blobUrl);
+              return;
+            }
+
+            state.playerBlobUrl = blobUrl;
+            player.src = blobUrl;
+            player.load();
+            await waitForPlayerMetadata(player, token, controller.signal);
+            if (token !== state.playerLoadToken) return;
+
+            const duration = getPlaybackDuration();
+            const restoredTime = Math.min(Math.max(0, resumeTime), Math.max(0, duration - 0.05));
+            if (restoredTime > 0) player.currentTime = restoredTime;
+            player.muted = true;
+            player.defaultMuted = true;
+            state.playerPreparing = false;
+            setControlsEnabled(true);
+            showPlayerStatus("Carregando vídeo…");
+            if (player.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) playerStatus.hidden = true;
+            attemptPlayerPlayback();
+            updatePlayerInterface();
+          } catch (error) {
+            if (error?.name === "AbortError" || token !== state.playerLoadToken) return;
+            state.playerPreparing = false;
+
+            const failedBlobUrl = state.playerBlobUrl;
+            state.playerBlobUrl = null;
+
+            if (state.playerOriginalSrc && player.currentSrc !== state.playerOriginalSrc) {
+              player.src = state.playerOriginalSrc;
+              player.load();
+            }
+            if (failedBlobUrl) URL.revokeObjectURL(failedBlobUrl);
+
+            showPlayerStatus("Carregando vídeo…");
+            playerStatus.hidden = player.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+            setControlsEnabled(player.readyState >= HTMLMediaElement.HAVE_METADATA);
+            attemptPlayerPlayback();
+          } finally {
+            if (state.playerFetchController === controller) state.playerFetchController = null;
+          }
+        };
+
         const cleanupPlayer = () => {
+          state.playerLoadToken += 1;
+          releasePreparedPlayerSource();
           clearControlsTimer();
           state.controlsFocused = false;
           state.controlsPointerActive = false;
           state.controlsPointerId = null;
           state.controlsPointerTarget = null;
           state.seekPointerId = null;
+          state.isScrubbing = false;
+          state.scrubTime = 0;
           state.suppressPlayerClick = false;
           player.pause();
           player.muted = true;
@@ -2093,6 +2327,7 @@
         };
 
         const openPlayer = (video, tile, preview, index) => {
+          const resumeTime = Number.isFinite(preview.currentTime) ? preview.currentTime : 0;
           state.currentVideo = video;
           state.lastTileTrigger = tile;
           state.activePreview = preview;
@@ -2106,9 +2341,8 @@
           preview.setAttribute("aria-label", `Vídeo: ${video.label}`);
           playerTemplate.replaceWith(preview);
           player = preview;
-          playerStatus.hidden = player.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
-          playerStatus.textContent = "Carregando vídeo…";
-          setControlsEnabled(player.readyState >= HTMLMediaElement.HAVE_METADATA);
+          showPlayerStatus("Preparando vídeo…");
+          setControlsEnabled(false);
           player.autoplay = true;
           player.loop = true;
           player.defaultMuted = true;
@@ -2116,7 +2350,7 @@
           playerDialog.showModal();
           playerTitle.focus({ preventScroll: true });
           revealControls();
-          attemptPlayerPlayback();
+          void preparePlayerSource(video, resumeTime);
         };
 
         const closePlayer = () => {
@@ -2149,7 +2383,11 @@
         };
 
         const resumePreviewVideos = () => {
-          galleryGrid.querySelectorAll('.vg-tile-button[data-in-view="true"] video').forEach((preview) => {
+          galleryGrid.querySelectorAll('.vg-tile-button[data-in-view="true"]').forEach((button) => {
+            const preview = button.querySelector("video");
+            if (!preview) return;
+            const item = button.closest(".vg-grid-item");
+            if (item) state.previewLoaders.get(item)?.();
             setPreviewPlayback(preview, true);
           });
         };
@@ -2169,6 +2407,10 @@
             const preview = button.querySelector("video");
             const isVisible = Boolean(preview) && isTileVisibleInGallery(button) && !playerDialog.open && !document.hidden;
             button.dataset.inView = String(isVisible);
+            if (preview && isVisible) {
+              const item = button.closest(".vg-grid-item");
+              if (item) state.previewLoaders.get(item)?.();
+            }
             if (preview) setPreviewPlayback(preview, isVisible);
           });
         };
@@ -2233,10 +2475,12 @@
           preview.setAttribute("playsinline", "");
           preview.setAttribute("aria-hidden", "true");
           if (video.poster) preview.poster = video.poster;
+          let tilePromoted = false;
 
           const configuredEnd = Number(video.endAt);
           if (Number.isFinite(configuredEnd) && configuredEnd > 0) {
             preview.addEventListener("timeupdate", () => {
+              if (preview.classList.contains("vg-player-video")) return;
               const limit = getPlaybackDuration(preview, video);
               if (!(limit > 0) || preview.currentTime < limit) return;
 
@@ -2252,12 +2496,16 @@
 
           preview.addEventListener(
             "loadedmetadata",
-            () => promoteToPlayableTile(item, placeholder, preview, video, index),
+            () => {
+              tilePromoted = true;
+              promoteToPlayableTile(item, placeholder, preview, video, index);
+            },
             { once: true },
           );
           preview.addEventListener(
             "error",
             () => {
+              if (tilePromoted) return;
               item.removeAttribute("aria-busy");
               placeholder.setAttribute("aria-label", `${video.label}: Vídeo em breve`);
               text.textContent = "Vídeo em breve";
@@ -2316,6 +2564,8 @@
 
                   if (!preview) return;
                   if (isVisible && galleryDialog.open && !playerDialog.open && !document.hidden) {
+                    const item = entry.target.closest(".vg-grid-item");
+                    if (item) state.previewLoaders.get(item)?.();
                     setPreviewPlayback(preview, true);
                   } else {
                     setPreviewPlayback(preview, false);
@@ -2426,12 +2676,12 @@
         });
 
         playerShell.addEventListener("loadedmetadata", (event) => {
-          if (event.target !== player) return;
+          if (event.target !== player || state.playerPreparing) return;
           setControlsEnabled(true);
           updatePlayerInterface();
         }, true);
         playerShell.addEventListener("loadeddata", (event) => {
-          if (event.target !== player) return;
+          if (event.target !== player || state.playerPreparing) return;
           playerStatus.hidden = true;
           setControlsEnabled(true);
           attemptPlayerPlayback();
@@ -2439,7 +2689,7 @@
           scheduleControlsHide();
         }, true);
         playerShell.addEventListener("error", (event) => {
-          if (event.target !== player) return;
+          if (event.target !== player || state.playerPreparing) return;
           playerStatus.hidden = false;
           playerStatus.textContent = "Vídeo em breve";
           setControlsEnabled(false);
@@ -2447,7 +2697,7 @@
         }, true);
         ["timeupdate", "durationchange", "play", "pause", "ended", "volumechange"].forEach((eventName) => {
           playerShell.addEventListener(eventName, (event) => {
-            if (event.target !== player) return;
+            if (event.target !== player || state.playerPreparing) return;
             if (eventName === "timeupdate") {
               const configuredEnd = Number(state.currentVideo?.endAt);
               const playbackLimit = getPlaybackDuration();
@@ -2491,11 +2741,18 @@
           revealControls();
         });
         seekBar.addEventListener("input", () => {
-          seekTo(Number(seekBar.value));
+          if (state.seekPointerId !== null) return;
+          state.isScrubbing = true;
+          state.scrubTime = Number(seekBar.value);
+          seekTo(state.scrubTime);
+          state.isScrubbing = false;
+          updatePlayerInterface();
         });
         seekBar.addEventListener("pointerdown", (event) => {
           if (event.button !== 0 || !(getPlaybackDuration() > 0)) return;
           state.seekPointerId = event.pointerId;
+          state.isScrubbing = true;
+          state.scrubTime = Number.isFinite(player.currentTime) ? player.currentTime : 0;
           state.controlsPointerActive = true;
           clearControlsTimer();
           playerControls.classList.remove("is-hidden");
@@ -2514,11 +2771,14 @@
         const finishSeek = (event) => {
           if (state.seekPointerId !== event.pointerId) return;
           if (event.type === "pointerup") seekFromPointer(event);
+          else seekTo(state.scrubTime);
           state.seekPointerId = null;
+          state.isScrubbing = false;
           state.controlsPointerActive = false;
           if (event.type !== "lostpointercapture" && seekBar.hasPointerCapture?.(event.pointerId)) {
             seekBar.releasePointerCapture(event.pointerId);
           }
+          updatePlayerInterface();
           scheduleControlsHide();
           event.preventDefault();
           event.stopPropagation();
@@ -2564,6 +2824,9 @@
           if (playerControls.contains(event.relatedTarget)) return;
           state.controlsFocused = false;
           scheduleControlsHide();
+        });
+        playerControls.addEventListener("click", (event) => {
+          event.stopPropagation();
         });
         playerControls.addEventListener("pointerdown", (event) => {
           const control = event.target instanceof Element ? event.target.closest(".vg-player-control") : null;
