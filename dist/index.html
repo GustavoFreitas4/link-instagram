@@ -2223,6 +2223,11 @@
               }
             }
 
+            if (state.rangeSupport === false && player.currentSrc === state.playerOriginalSrc) {
+              player.removeAttribute("src");
+              player.load();
+            }
+
             const blob = await readResponseBlob(response, token);
             if (token !== state.playerLoadToken) return;
 
