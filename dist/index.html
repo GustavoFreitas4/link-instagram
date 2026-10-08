@@ -71,6 +71,9 @@
         --font-display: "Bebas Neue", "Arial Narrow", sans-serif;
         --font-body: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         --page-width: 26.25rem;
+        --vg-motion-duration: 380ms;
+        --vg-grid-motion-duration: 360ms;
+        --vg-motion-easing: cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       *,
@@ -124,6 +127,27 @@
           radial-gradient(circle at 50% 7%, rgba(13, 92, 99, 0.28), transparent 24rem),
           radial-gradient(circle at 50% 68%, rgba(13, 92, 99, 0.2), transparent 27rem),
           linear-gradient(180deg, var(--color-bg) 0%, var(--color-bg-deep) 100%);
+        pointer-events: none;
+      }
+
+      .home-backdrop,
+      .page-shell {
+        opacity: 1;
+        transform: translateY(0);
+        transition:
+          opacity var(--vg-motion-duration) var(--vg-motion-easing),
+          transform var(--vg-motion-duration) var(--vg-motion-easing);
+        will-change: opacity, transform;
+      }
+
+      body.vg-gallery-active .home-backdrop,
+      body.vg-gallery-active .page-shell {
+        opacity: 0;
+        transform: translateY(-0.75rem);
+        pointer-events: none;
+      }
+
+      body.vg-interface-transitioning .page-shell {
         pointer-events: none;
       }
 
@@ -833,6 +857,9 @@
         border: 0;
         background: #050606;
         color: var(--color-text);
+        opacity: 0;
+        transition: opacity var(--vg-motion-duration) var(--vg-motion-easing);
+        will-change: opacity;
       }
 
       .vg-dialog:not([open]) {
@@ -841,6 +868,17 @@
 
       .vg-dialog::backdrop {
         background: #000;
+        opacity: 0;
+        transition: opacity var(--vg-motion-duration) var(--vg-motion-easing);
+      }
+
+      .vg-dialog.is-visible,
+      .vg-dialog.is-visible::backdrop {
+        opacity: 1;
+      }
+
+      .vg-dialog.is-transitioning {
+        pointer-events: none;
       }
 
       .vg-gallery-shell {
@@ -852,6 +890,17 @@
           max(1rem, env(safe-area-inset-right))
           max(1.5rem, env(safe-area-inset-bottom))
           max(1rem, env(safe-area-inset-left));
+        opacity: 0;
+        transform: translateY(1rem);
+        transition:
+          opacity var(--vg-motion-duration) var(--vg-motion-easing),
+          transform var(--vg-motion-duration) var(--vg-motion-easing);
+        will-change: opacity, transform;
+      }
+
+      .vg-gallery-dialog.is-visible .vg-gallery-shell {
+        opacity: 1;
+        transform: translateY(0);
       }
 
       .vg-gallery-header {
@@ -893,6 +942,16 @@
         letter-spacing: 0.035em;
         line-height: 0.92;
         text-transform: uppercase;
+      }
+
+      .vg-gallery-title,
+      .vg-gallery-title:focus,
+      .vg-gallery-title:focus-visible,
+      .vg-eyebrow,
+      .vg-eyebrow:focus,
+      .vg-eyebrow:focus-visible {
+        outline: none;
+        box-shadow: none;
       }
 
       .vg-back-button,
@@ -957,6 +1016,22 @@
 
       .vg-grid-item {
         min-width: 0;
+        opacity: 0;
+        transform: scale(0.96);
+        transition:
+          opacity var(--vg-grid-motion-duration) var(--vg-motion-easing),
+          transform var(--vg-grid-motion-duration) var(--vg-motion-easing);
+        transition-delay: calc((var(--vg-index, 0) * 50ms) + 70ms);
+        will-change: opacity, transform;
+      }
+
+      .vg-gallery-dialog.is-visible .vg-grid-item {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .vg-gallery-dialog.is-leaving .vg-grid-item {
+        transition-delay: 0ms;
       }
 
       .vg-tile {
@@ -1017,6 +1092,7 @@
         height: 100%;
         background: #0d0f10;
         object-fit: cover;
+        -webkit-tap-highlight-color: transparent;
       }
 
       .vg-tile-number {
@@ -1102,6 +1178,17 @@
         border-radius: 1rem;
         background: #080909;
         box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.72);
+        opacity: 0;
+        transform: scale(0.92);
+        transition:
+          opacity var(--vg-motion-duration) var(--vg-motion-easing),
+          transform var(--vg-motion-duration) var(--vg-motion-easing);
+        will-change: opacity, transform;
+      }
+
+      .vg-player-dialog.is-visible .vg-player-shell {
+        opacity: 1;
+        transform: scale(1);
       }
 
       .vg-player-video {
@@ -1112,6 +1199,7 @@
         height: 100%;
         background: #080909;
         object-fit: contain;
+        -webkit-tap-highlight-color: transparent;
       }
 
       .vg-player-status {
@@ -1428,9 +1516,32 @@
         *::before,
         *::after {
           animation-duration: 0.01ms !important;
+          animation-delay: 0ms !important;
           animation-iteration-count: 1 !important;
           scroll-behavior: auto !important;
           transition-duration: 0.01ms !important;
+          transition-delay: 0ms !important;
+        }
+
+        .home-backdrop,
+        .page-shell,
+        .vg-dialog,
+        .vg-gallery-shell,
+        .vg-player-shell,
+        .vg-grid-item {
+          animation: none !important;
+          transition: none !important;
+        }
+
+        body.vg-gallery-active .home-backdrop,
+        body.vg-gallery-active .page-shell,
+        .vg-dialog[open],
+        .vg-dialog[open]::backdrop,
+        .vg-gallery-dialog[open] .vg-gallery-shell,
+        .vg-gallery-dialog[open] .vg-grid-item,
+        .vg-player-dialog[open] .vg-player-shell {
+          opacity: 1 !important;
+          transform: none !important;
         }
       }
     </style>
@@ -1883,6 +1994,7 @@
         };
 
         const galleryDialog = document.querySelector("#video-gallery-dialog");
+        const galleryShell = galleryDialog.querySelector(".vg-gallery-shell");
         const galleryTitle = document.querySelector("#video-gallery-title");
         const galleryGrid = document.querySelector("#video-gallery-grid");
         const galleryClose = document.querySelector("#video-gallery-close");
@@ -1933,6 +2045,54 @@
           playerBlobUrl: null,
           playerOriginalSrc: "",
           playerPreparing: false,
+          galleryTransitioning: false,
+          playerTransitioning: false,
+          playerTransitionPromise: null,
+          pendingGallerySync: false,
+          galleryNavigationPending: false,
+          homeScrollY: 0,
+          restorePlayerFocus: true,
+        };
+
+        const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const motionDuration = 380;
+
+        const syncTransitionLock = () => {
+          document.body.classList.toggle(
+            "vg-interface-transitioning",
+            state.galleryTransitioning || state.playerTransitioning,
+          );
+        };
+
+        const waitForMotionFrame = () => {
+          if (motionPreference.matches) return Promise.resolve();
+          return new Promise((resolve) => {
+            window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
+          });
+        };
+
+        const waitForMotionEnd = (element) => {
+          if (motionPreference.matches) return Promise.resolve();
+          return new Promise((resolve) => {
+            let finished = false;
+            const finish = () => {
+              if (finished) return;
+              finished = true;
+              window.clearTimeout(timeoutId);
+              element.removeEventListener("transitionend", handleTransitionEnd);
+              resolve();
+            };
+            const handleTransitionEnd = (event) => {
+              if (
+                event.target === element &&
+                (event.propertyName === "opacity" || event.propertyName === "transform")
+              ) {
+                finish();
+              }
+            };
+            const timeoutId = window.setTimeout(finish, motionDuration + 140);
+            element.addEventListener("transitionend", handleTransitionEnd);
+          });
         };
 
         const filmIconMarkup = `
@@ -2332,36 +2492,88 @@
         };
 
         const openPlayer = (video, tile, preview, index) => {
-          const resumeTime = Number.isFinite(preview.currentTime) ? preview.currentTime : 0;
-          state.currentVideo = video;
-          state.lastTileTrigger = tile;
-          state.activePreview = preview;
-          state.previewHome = { parent: preview.parentNode, nextSibling: preview.nextSibling };
-          playerNumber.textContent = String(index + 1).padStart(2, "0");
-          playerTitle.textContent = `${VIDEO_GALLERIES[state.galleryId].title} — ${video.label}`;
-          preview.classList.remove("vg-preview-video");
-          preview.classList.add("vg-player-video");
-          preview.removeAttribute("aria-hidden");
-          preview.id = "video-player";
-          preview.setAttribute("aria-label", `Vídeo: ${video.label}`);
-          playerTemplate.replaceWith(preview);
-          player = preview;
-          showPlayerStatus("Preparando vídeo…");
-          setControlsEnabled(false);
-          player.autoplay = true;
-          player.loop = true;
-          player.defaultMuted = true;
-          player.muted = true;
-          playerDialog.showModal();
-          playerTitle.focus({ preventScroll: true });
-          revealControls();
-          void preparePlayerSource(video, resumeTime);
+          if (state.galleryTransitioning || playerDialog.open || state.playerTransitioning) {
+            return state.playerTransitionPromise ?? Promise.resolve();
+          }
+
+          state.playerTransitioning = true;
+          syncTransitionLock();
+          state.playerTransitionPromise = (async () => {
+            const resumeTime = Number.isFinite(preview.currentTime) ? preview.currentTime : 0;
+            state.currentVideo = video;
+            state.lastTileTrigger = tile;
+            state.activePreview = preview;
+            state.previewHome = { parent: preview.parentNode, nextSibling: preview.nextSibling };
+            playerNumber.textContent = String(index + 1).padStart(2, "0");
+            playerTitle.textContent = `${VIDEO_GALLERIES[state.galleryId].title} — ${video.label}`;
+            preview.classList.remove("vg-preview-video");
+            preview.classList.add("vg-player-video");
+            preview.removeAttribute("aria-hidden");
+            preview.id = "video-player";
+            preview.setAttribute("aria-label", `Vídeo: ${video.label}`);
+            playerTemplate.replaceWith(preview);
+            player = preview;
+            showPlayerStatus("Preparando vídeo…");
+            setControlsEnabled(false);
+            player.autoplay = true;
+            player.loop = true;
+            player.defaultMuted = true;
+            player.muted = true;
+            playerDialog.classList.remove("is-visible", "is-leaving");
+            playerDialog.classList.add("is-transitioning");
+            playerShell.toggleAttribute("inert", true);
+            playerDialog.showModal();
+            revealControls();
+            void preparePlayerSource(video, resumeTime);
+
+            await waitForMotionFrame();
+            playerDialog.classList.add("is-visible");
+            await waitForMotionEnd(playerShell);
+            playerDialog.classList.remove("is-transitioning");
+            playerShell.toggleAttribute("inert", false);
+            state.playerTransitioning = false;
+            state.playerTransitionPromise = null;
+            syncTransitionLock();
+            playerTitle.focus({ preventScroll: true });
+          })();
+
+          return state.playerTransitionPromise;
         };
 
-        const closePlayer = () => {
+        const closePlayer = ({ restoreFocus = true } = {}) => {
+          if (!playerDialog.open) return Promise.resolve();
+
+          if (state.playerTransitioning) {
+            if (playerDialog.classList.contains("is-leaving")) {
+              return state.playerTransitionPromise ?? Promise.resolve();
+            }
+            return (state.playerTransitionPromise ?? Promise.resolve()).then(() => closePlayer({ restoreFocus }));
+          }
+
+          state.playerTransitioning = true;
+          state.restorePlayerFocus = restoreFocus;
+          syncTransitionLock();
           player.muted = true;
           player.defaultMuted = true;
-          if (playerDialog.open) playerDialog.close();
+          playerDialog.classList.add("is-transitioning", "is-leaving");
+          playerDialog.classList.remove("is-visible");
+          playerShell.toggleAttribute("inert", true);
+
+          state.playerTransitionPromise = (async () => {
+            await waitForMotionEnd(playerShell);
+            if (playerDialog.open) {
+              await new Promise((resolve) => {
+                playerDialog.addEventListener("close", resolve, { once: true });
+                playerDialog.close();
+              });
+            }
+            playerDialog.classList.remove("is-transitioning", "is-leaving");
+            state.playerTransitioning = false;
+            state.playerTransitionPromise = null;
+            syncTransitionLock();
+          })();
+
+          return state.playerTransitionPromise;
         };
 
         const setPreviewPlayback = (preview, shouldPlay) => {
@@ -2434,8 +2646,9 @@
 
           button.append(preview, number);
           button.addEventListener("click", () => {
+            if (state.galleryTransitioning || state.playerTransitioning || playerDialog.open) return;
             pausePreviewVideos();
-            openPlayer(video, button, preview, index);
+            void openPlayer(video, button, preview, index);
           });
           placeholder.replaceWith(button);
           item.removeAttribute("aria-busy");
@@ -2450,6 +2663,7 @@
 
         const createVideoTile = (video, index) => {
           const item = createElement("li", "vg-grid-item");
+          item.style.setProperty("--vg-index", String(index));
           const placeholder = createElement("div", "vg-tile vg-tile-placeholder");
           const hasSource = Boolean(video.src && video.src.trim());
           placeholder.setAttribute("aria-label", `${video.label}: ${hasSource ? "carregando vídeo" : "Vídeo em breve"}`);
@@ -2607,77 +2821,171 @@
           }
         };
 
-        const openGalleryInterface = (galleryId) => {
-          if (!VIDEO_GALLERIES[galleryId]) return;
-          const changedGallery = state.galleryId !== galleryId;
-          state.galleryId = galleryId;
-          if (changedGallery || !galleryDialog.open) renderGallery(galleryId);
-          if (!galleryDialog.open) galleryDialog.showModal();
-          document.body.classList.add("vg-scroll-locked");
-          galleryTitle.focus({ preventScroll: true });
+        const flushPendingGallerySync = () => {
+          if (!state.pendingGallerySync || state.galleryTransitioning) return;
+          state.pendingGallerySync = false;
+          window.requestAnimationFrame(syncGalleryFromUrl);
         };
 
-        const closeGalleryInterface = () => {
-          if (playerDialog.open) playerDialog.close();
+        const openGalleryInterface = async (galleryId) => {
+          if (!VIDEO_GALLERIES[galleryId]) return;
+          if (state.galleryTransitioning) {
+            state.pendingGallerySync = true;
+            return;
+          }
+
+          const changedGallery = state.galleryId !== galleryId;
+          if (galleryDialog.open) {
+            state.galleryId = galleryId;
+            if (changedGallery) renderGallery(galleryId);
+            galleryDialog.scrollTop = 0;
+            galleryShell.toggleAttribute("inert", false);
+            galleryTitle.focus({ preventScroll: true });
+            return;
+          }
+
+          state.galleryTransitioning = true;
+          syncTransitionLock();
+          state.homeScrollY = window.scrollY;
+          state.galleryId = galleryId;
+          renderGallery(galleryId);
+          galleryDialog.classList.remove("is-visible", "is-leaving");
+          galleryDialog.classList.add("is-transitioning");
+          galleryShell.toggleAttribute("inert", true);
+          galleryDialog.showModal();
+          galleryDialog.scrollTop = 0;
+          document.body.classList.add("vg-scroll-locked");
+
+          await waitForMotionFrame();
+          document.body.classList.add("vg-gallery-active");
+          galleryDialog.classList.add("is-visible");
+          await waitForMotionEnd(galleryShell);
+
+          galleryDialog.classList.remove("is-transitioning");
+          galleryShell.toggleAttribute("inert", state.pendingGallerySync);
+          state.galleryTransitioning = false;
+          syncTransitionLock();
+          galleryTitle.focus({ preventScroll: true });
+          flushPendingGallerySync();
+        };
+
+        const closeGalleryInterface = async () => {
+          if (state.galleryTransitioning) {
+            state.pendingGallerySync = true;
+            return;
+          }
+
+          if (!galleryDialog.open) {
+            document.body.classList.remove("vg-gallery-active", "vg-scroll-locked");
+            state.galleryId = null;
+            return;
+          }
+
+          state.galleryTransitioning = true;
+          syncTransitionLock();
+          galleryShell.toggleAttribute("inert", true);
+          if (playerDialog.open || state.playerTransitioning) {
+            await closePlayer({ restoreFocus: false });
+          }
+
+          const focusTarget = state.lastServiceTrigger;
+          galleryDialog.classList.add("is-transitioning", "is-leaving");
+          galleryDialog.classList.remove("is-visible");
+          document.body.classList.remove("vg-gallery-active");
+          await waitForMotionEnd(galleryShell);
+
           cleanupPreviews();
           if (galleryDialog.open) galleryDialog.close();
+          galleryDialog.classList.remove("is-transitioning", "is-leaving");
           document.body.classList.remove("vg-scroll-locked");
           state.galleryId = null;
-          const focusTarget = state.lastServiceTrigger;
+          state.galleryNavigationPending = false;
           state.lastServiceTrigger = null;
-          if (focusTarget?.isConnected) window.requestAnimationFrame(() => focusTarget.focus());
+          window.scrollTo({ top: state.homeScrollY, left: 0, behavior: "auto" });
+          state.galleryTransitioning = false;
+          syncTransitionLock();
+
+          if (focusTarget?.isConnected) {
+            window.requestAnimationFrame(() => focusTarget.focus({ preventScroll: true }));
+          }
+          flushPendingGallerySync();
         };
 
         const syncGalleryFromUrl = () => {
+          state.galleryNavigationPending = false;
+          if (state.galleryTransitioning) {
+            state.pendingGallerySync = true;
+            return;
+          }
           const galleryId = new URL(window.location.href).searchParams.get("galeria");
-          if (galleryId && VIDEO_GALLERIES[galleryId]) openGalleryInterface(galleryId);
-          else closeGalleryInterface();
+          if (galleryId && VIDEO_GALLERIES[galleryId]) void openGalleryInterface(galleryId);
+          else void closeGalleryInterface();
         };
 
         const requestGalleryClose = () => {
+          if (state.galleryTransitioning || state.playerTransitioning || state.galleryNavigationPending) return;
           if (playerDialog.open) {
-            closePlayer();
+            void closePlayer();
             return;
           }
 
           const url = new URL(window.location.href);
           if (url.searchParams.has("galeria") && window.history.state?.videoGallery) {
+            state.galleryNavigationPending = true;
             window.history.back();
             return;
           }
 
           url.searchParams.delete("galeria");
           window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-          closeGalleryInterface();
+          void closeGalleryInterface();
         };
 
         galleryLinks.forEach((link) => {
           link.addEventListener("click", (event) => {
             event.preventDefault();
+            if (state.galleryTransitioning || state.playerTransitioning || galleryDialog.open) return;
             const galleryId = link.dataset.gallery;
             if (!VIDEO_GALLERIES[galleryId]) return;
             state.lastServiceTrigger = link;
             const url = new URL(window.location.href);
             url.searchParams.set("galeria", galleryId);
             window.history.pushState({ videoGallery: galleryId }, "", `${url.pathname}${url.search}${url.hash}`);
-            openGalleryInterface(galleryId);
+            void openGalleryInterface(galleryId);
           });
         });
 
         galleryClose.addEventListener("click", requestGalleryClose);
+        galleryDialog.addEventListener("keydown", (event) => {
+          if (event.key !== "Escape") return;
+          event.preventDefault();
+          requestGalleryClose();
+        });
         galleryDialog.addEventListener("cancel", (event) => {
           event.preventDefault();
           requestGalleryClose();
         });
         window.addEventListener("popstate", syncGalleryFromUrl);
 
-        playerClose.addEventListener("click", closePlayer);
+        playerClose.addEventListener("click", () => {
+          if (state.playerTransitioning) return;
+          void closePlayer();
+        });
+        playerDialog.addEventListener("cancel", (event) => {
+          event.preventDefault();
+          if (state.playerTransitioning) return;
+          void closePlayer();
+        });
         playerDialog.addEventListener("close", () => {
           const focusTarget = state.lastTileTrigger;
+          const shouldRestoreFocus = state.restorePlayerFocus;
           cleanupPlayer();
           resumePreviewVideos();
           state.lastTileTrigger = null;
-          if (focusTarget?.isConnected) window.requestAnimationFrame(() => focusTarget.focus());
+          state.restorePlayerFocus = true;
+          if (shouldRestoreFocus && focusTarget?.isConnected) {
+            window.requestAnimationFrame(() => focusTarget.focus({ preventScroll: true }));
+          }
         });
 
         playerShell.addEventListener("loadedmetadata", (event) => {
@@ -2859,6 +3167,11 @@
           playerControls.addEventListener(eventName, finishControlsPointer);
         });
         playerDialog.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            if (!state.playerTransitioning) void closePlayer();
+            return;
+          }
           if (playerControls.contains(document.activeElement)) {
             state.controlsFocused = true;
             clearControlsTimer();
