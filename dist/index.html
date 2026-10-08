@@ -859,11 +859,11 @@
         z-index: 5;
         top: 0;
         display: flex;
-        align-items: flex-end;
+        align-items: center;
         justify-content: space-between;
-        gap: 1rem;
-        margin: -1rem -0.25rem 1rem;
-        padding: 1rem 0.25rem 0.9rem;
+        gap: 0.75rem;
+        margin: -1rem -0.25rem 0.75rem;
+        padding: 1rem 0.25rem 0.65rem;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         background: linear-gradient(180deg, rgba(5, 6, 6, 0.98) 0%, rgba(5, 6, 6, 0.9) 82%, transparent 100%);
         backdrop-filter: blur(0.6rem);
@@ -875,12 +875,12 @@
       }
 
       .vg-eyebrow {
-        margin: 0 0 0.2rem;
+        margin: 0 0 0.1rem;
         color: var(--color-accent-bright);
-        font-size: 0.72rem;
+        font-size: clamp(0.58rem, 1.5vw, 0.65rem);
         font-weight: 700;
-        letter-spacing: 0.18em;
-        line-height: 1.2;
+        letter-spacing: 0.16em;
+        line-height: 1.15;
         text-transform: uppercase;
       }
 
@@ -888,10 +888,10 @@
         margin: 0;
         color: var(--color-text);
         font-family: var(--font-display);
-        font-size: clamp(2.5rem, 10vw, 4.65rem);
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
         font-weight: 400;
         letter-spacing: 0.035em;
-        line-height: 0.9;
+        line-height: 0.92;
         text-transform: uppercase;
       }
 
@@ -1299,7 +1299,7 @@
       .vg-seek {
         display: block;
         width: 100%;
-        height: 2.5rem;
+        height: 3rem;
         margin: 0;
         appearance: none;
         border-radius: 999px;
@@ -1311,6 +1311,7 @@
           rgba(255, 255, 255, 0.22) 100%
         ) center / 100% 0.28rem no-repeat;
         cursor: pointer;
+        touch-action: none;
       }
 
       .vg-seek::-webkit-slider-runnable-track {
@@ -1376,10 +1377,13 @@
       @media (max-width: 27rem) {
         .vg-gallery-header {
           align-items: center;
+          gap: 0.6rem;
+          margin-bottom: 0.625rem;
+          padding-bottom: 0.55rem;
         }
 
         .vg-gallery-title {
-          font-size: clamp(2.15rem, 11.5vw, 3rem);
+          font-size: clamp(1.6rem, 4vw, 2.4rem);
         }
 
         .vg-back-button span {
@@ -1415,7 +1419,7 @@
         }
 
         .vg-seek {
-          height: 2.75rem;
+          height: 3.25rem;
         }
       }
 
@@ -1871,7 +1875,7 @@
               { id: "imoveis-01", label: "Imóvel 01", src: "/videos/imoveis/video-01.mp4" },
               { id: "imoveis-02", label: "Imóvel 02", src: "/videos/imoveis/video-02.mp4" },
               { id: "imoveis-03", label: "Imóvel 03", src: "/videos/imoveis/video-03.mp4" },
-              { id: "imoveis-04", label: "Imóvel 04", src: "/videos/imoveis/video-04.mp4" },
+              { id: "imoveis-04", label: "Imóvel 04", src: "/videos/imoveis/video-04.mp4", endAt: 60 },
               { id: "imoveis-05", label: "Imóvel 05", src: "/videos/imoveis/video-05.mp4" },
               { id: "imoveis-06", label: "Imóvel 06", src: "/videos/imoveis/video-06.mp4" },
             ],
@@ -1903,8 +1907,6 @@
         const pauseIcon = document.querySelector('[data-player-icon="pause"]');
         const mutedIcon = document.querySelector('[data-volume-icon="muted"]');
         const soundIcon = document.querySelector('[data-volume-icon="sound"]');
-        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
         const state = {
           galleryId: null,
           currentVideo: null,
@@ -1912,11 +1914,14 @@
           lastTileTrigger: null,
           previewLoadObserver: null,
           previewPlayObserver: null,
+          previewFallbackHandler: null,
           previewLoaders: new WeakMap(),
           activePreview: null,
           previewHome: null,
           controlsTimer: null,
-          controlsLocked: false,
+          controlsFocused: false,
+          controlsPointerActive: false,
+          seekPointerId: null,
           suppressPlayerClick: false,
         };
 
@@ -1940,6 +1945,17 @@
           return `${minutes}:${seconds}`;
         };
 
+        const getPlaybackDuration = (media = player, video = state.currentVideo) => {
+          const actualDuration = Number.isFinite(media.duration) && media.duration > 0 ? media.duration : 0;
+          const configuredEnd = Number(video?.endAt);
+
+          if (Number.isFinite(configuredEnd) && configuredEnd > 0) {
+            return actualDuration > 0 ? Math.min(configuredEnd, actualDuration) : configuredEnd;
+          }
+
+          return actualDuration;
+        };
+
         const setControlsEnabled = (enabled) => {
           [rewindButton, playButton, forwardButton, muteButton, seekBar].forEach((control) => {
             control.disabled = !enabled;
@@ -1955,7 +1971,13 @@
 
         const scheduleControlsHide = () => {
           clearControlsTimer();
-          if (!playerDialog.open || state.controlsLocked || player.paused) return;
+          if (
+            !playerDialog.open ||
+            state.controlsFocused ||
+            state.controlsPointerActive ||
+            state.seekPointerId !== null ||
+            player.paused
+          ) return;
 
           state.controlsTimer = window.setTimeout(() => {
             state.controlsTimer = null;
@@ -1968,9 +1990,31 @@
           scheduleControlsHide();
         };
 
+        const seekTo = (value) => {
+          const duration = getPlaybackDuration();
+          if (!(duration > 0) || !Number.isFinite(value)) return;
+          player.currentTime = Math.min(duration, Math.max(0, value));
+          updatePlayerInterface();
+        };
+
+        const seekBy = (seconds) => {
+          const currentTime = Number.isFinite(player.currentTime) ? player.currentTime : 0;
+          seekTo(currentTime + seconds);
+        };
+
+        const seekFromPointer = (event) => {
+          const duration = getPlaybackDuration();
+          const bounds = seekBar.getBoundingClientRect();
+          if (!(duration > 0) || !(bounds.width > 0)) return;
+
+          const ratio = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
+          seekTo(ratio * duration);
+        };
+
         const updatePlayerInterface = () => {
-          const duration = Number.isFinite(player.duration) && player.duration > 0 ? player.duration : 0;
-          const currentTime = Number.isFinite(player.currentTime) ? Math.min(player.currentTime, duration || player.currentTime) : 0;
+          const duration = getPlaybackDuration();
+          const rawCurrentTime = Number.isFinite(player.currentTime) ? player.currentTime : 0;
+          const currentTime = Math.min(rawCurrentTime, duration || rawCurrentTime);
           const progress = duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
           const label = state.currentVideo?.label || "vídeo";
 
@@ -1997,7 +2041,9 @@
 
         const cleanupPlayer = () => {
           clearControlsTimer();
-          state.controlsLocked = false;
+          state.controlsFocused = false;
+          state.controlsPointerActive = false;
+          state.seekPointerId = null;
           state.suppressPlayerClick = false;
           player.pause();
           player.muted = true;
@@ -2008,6 +2054,8 @@
             activePreview.replaceWith(playerTemplate);
             activePreview.classList.remove("vg-player-video");
             activePreview.classList.add("vg-preview-video");
+            activePreview.autoplay = false;
+            activePreview.removeAttribute("autoplay");
             activePreview.removeAttribute("id");
             activePreview.removeAttribute("aria-label");
             activePreview.setAttribute("aria-hidden", "true");
@@ -2073,15 +2121,51 @@
           if (playerDialog.open) playerDialog.close();
         };
 
+        const setPreviewPlayback = (preview, shouldPlay) => {
+          if (shouldPlay) {
+            preview.muted = true;
+            preview.defaultMuted = true;
+            preview.loop = true;
+            preview.autoplay = true;
+            preview.setAttribute("muted", "");
+            preview.setAttribute("loop", "");
+            preview.setAttribute("autoplay", "");
+            preview.setAttribute("playsinline", "");
+            preview.play().catch(() => {});
+            return;
+          }
+
+          preview.autoplay = false;
+          preview.removeAttribute("autoplay");
+          preview.pause();
+        };
+
         const pausePreviewVideos = () => {
-          galleryGrid.querySelectorAll("video").forEach((preview) => preview.pause());
+          galleryGrid.querySelectorAll("video").forEach((preview) => setPreviewPlayback(preview, false));
         };
 
         const resumePreviewVideos = () => {
-          if (reducedMotion.matches) return;
           galleryGrid.querySelectorAll('.vg-tile-button[data-in-view="true"] video').forEach((preview) => {
-            preview.muted = true;
-            preview.play().catch(() => {});
+            setPreviewPlayback(preview, true);
+          });
+        };
+
+        const isTileVisibleInGallery = (tile) => {
+          if (!galleryDialog.open) return false;
+          const tileRect = tile.getBoundingClientRect();
+          const rootRect = galleryDialog.getBoundingClientRect();
+          const visibleWidth = Math.max(0, Math.min(tileRect.right, rootRect.right) - Math.max(tileRect.left, rootRect.left));
+          const visibleHeight = Math.max(0, Math.min(tileRect.bottom, rootRect.bottom) - Math.max(tileRect.top, rootRect.top));
+          const tileArea = tileRect.width * tileRect.height;
+          return tileArea > 0 && (visibleWidth * visibleHeight) / tileArea >= 0.18;
+        };
+
+        const syncFallbackPreviewPlayback = () => {
+          galleryGrid.querySelectorAll(".vg-tile-button").forEach((button) => {
+            const preview = button.querySelector("video");
+            const isVisible = Boolean(preview) && isTileVisibleInGallery(button) && !playerDialog.open && !document.hidden;
+            button.dataset.inView = String(isVisible);
+            if (preview) setPreviewPlayback(preview, isVisible);
           });
         };
 
@@ -2106,9 +2190,10 @@
           item.removeAttribute("aria-busy");
           state.previewPlayObserver?.observe(button);
 
-          if (!state.previewPlayObserver && !reducedMotion.matches) {
-            button.dataset.inView = "true";
-            preview.play().catch(() => {});
+          if (!state.previewPlayObserver) {
+            const isVisible = isTileVisibleInGallery(button) && !playerDialog.open && !document.hidden;
+            button.dataset.inView = String(isVisible);
+            setPreviewPlayback(preview, isVisible);
           }
         };
 
@@ -2136,18 +2221,33 @@
           preview.muted = true;
           preview.defaultMuted = true;
           preview.loop = true;
-          preview.autoplay = true;
+          preview.autoplay = false;
           preview.playsInline = true;
           preview.preload = "metadata";
           preview.setAttribute("muted", "");
           preview.setAttribute("loop", "");
-          preview.setAttribute("autoplay", "");
           preview.setAttribute("playsinline", "");
           preview.setAttribute("aria-hidden", "true");
           if (video.poster) preview.poster = video.poster;
 
+          const configuredEnd = Number(video.endAt);
+          if (Number.isFinite(configuredEnd) && configuredEnd > 0) {
+            preview.addEventListener("timeupdate", () => {
+              const limit = getPlaybackDuration(preview, video);
+              if (!(limit > 0) || preview.currentTime < limit) return;
+
+              const shouldContinue = !preview.paused && !document.hidden;
+              preview.currentTime = 0;
+              if (shouldContinue) {
+                preview.muted = true;
+                preview.defaultMuted = true;
+                preview.play().catch(() => {});
+              }
+            });
+          }
+
           preview.addEventListener(
-            "loadeddata",
+            "loadedmetadata",
             () => promoteToPlayableTile(item, placeholder, preview, video, index),
             { once: true },
           );
@@ -2179,6 +2279,11 @@
           state.previewPlayObserver?.disconnect();
           state.previewLoadObserver = null;
           state.previewPlayObserver = null;
+          if (state.previewFallbackHandler) {
+            galleryDialog.removeEventListener("scroll", state.previewFallbackHandler);
+            window.removeEventListener("resize", state.previewFallbackHandler);
+            state.previewFallbackHandler = null;
+          }
           galleryGrid.querySelectorAll("video").forEach((preview) => {
             preview.pause();
             preview.removeAttribute("src");
@@ -2206,11 +2311,10 @@
                   entry.target.dataset.inView = String(isVisible);
 
                   if (!preview) return;
-                  if (isVisible && galleryDialog.open && !playerDialog.open && !document.hidden && !reducedMotion.matches) {
-                    preview.muted = true;
-                    preview.play().catch(() => {});
+                  if (isVisible && galleryDialog.open && !playerDialog.open && !document.hidden) {
+                    setPreviewPlayback(preview, true);
                   } else {
-                    preview.pause();
+                    setPreviewPlayback(preview, false);
                   }
                 });
               },
@@ -2234,9 +2338,13 @@
               state.previewLoadObserver.observe(item);
             });
           } else {
+            state.previewFallbackHandler = syncFallbackPreviewPlayback;
+            galleryDialog.addEventListener("scroll", state.previewFallbackHandler, { passive: true });
+            window.addEventListener("resize", state.previewFallbackHandler, { passive: true });
             galleryGrid.querySelectorAll(".vg-grid-item[aria-busy]").forEach((item) => {
               state.previewLoaders.get(item)?.();
             });
+            window.requestAnimationFrame(state.previewFallbackHandler);
           }
         };
 
@@ -2336,6 +2444,20 @@
         ["timeupdate", "durationchange", "play", "pause", "ended", "volumechange"].forEach((eventName) => {
           playerShell.addEventListener(eventName, (event) => {
             if (event.target !== player) return;
+            if (eventName === "timeupdate") {
+              const configuredEnd = Number(state.currentVideo?.endAt);
+              const playbackLimit = getPlaybackDuration();
+              if (
+                Number.isFinite(configuredEnd) &&
+                configuredEnd > 0 &&
+                playbackLimit > 0 &&
+                player.currentTime >= playbackLimit
+              ) {
+                const shouldContinue = !player.paused && !document.hidden;
+                player.currentTime = 0;
+                if (shouldContinue) attemptPlayerPlayback();
+              }
+            }
             updatePlayerInterface();
             if (eventName === "play") scheduleControlsHide();
             if (eventName === "pause" || eventName === "ended") revealControls();
@@ -2348,12 +2470,11 @@
           revealControls();
         });
         rewindButton.addEventListener("click", () => {
-          player.currentTime = Math.max(0, player.currentTime - 10);
+          seekBy(-10);
           revealControls();
         });
         forwardButton.addEventListener("click", () => {
-          const duration = Number.isFinite(player.duration) ? player.duration : player.currentTime + 10;
-          player.currentTime = Math.min(duration, player.currentTime + 10);
+          seekBy(10);
           revealControls();
         });
         muteButton.addEventListener("click", () => {
@@ -2366,10 +2487,42 @@
           revealControls();
         });
         seekBar.addEventListener("input", () => {
-          const nextTime = Number(seekBar.value);
-          if (Number.isFinite(nextTime)) player.currentTime = nextTime;
-          updatePlayerInterface();
+          seekTo(Number(seekBar.value));
         });
+        seekBar.addEventListener("pointerdown", (event) => {
+          if (event.button !== 0 || !(getPlaybackDuration() > 0)) return;
+          state.seekPointerId = event.pointerId;
+          state.controlsPointerActive = true;
+          clearControlsTimer();
+          playerControls.classList.remove("is-hidden");
+          seekBar.setPointerCapture?.(event.pointerId);
+          seekFromPointer(event);
+          event.preventDefault();
+          event.stopPropagation();
+        });
+        seekBar.addEventListener("pointermove", (event) => {
+          if (state.seekPointerId !== event.pointerId) return;
+          seekFromPointer(event);
+          event.preventDefault();
+          event.stopPropagation();
+        });
+
+        const finishSeek = (event) => {
+          if (state.seekPointerId !== event.pointerId) return;
+          if (event.type === "pointerup") seekFromPointer(event);
+          state.seekPointerId = null;
+          state.controlsPointerActive = false;
+          if (event.type !== "lostpointercapture" && seekBar.hasPointerCapture?.(event.pointerId)) {
+            seekBar.releasePointerCapture(event.pointerId);
+          }
+          scheduleControlsHide();
+          event.preventDefault();
+          event.stopPropagation();
+        };
+
+        seekBar.addEventListener("pointerup", finishSeek);
+        seekBar.addEventListener("pointercancel", finishSeek);
+        seekBar.addEventListener("lostpointercapture", finishSeek);
 
         playerShell.addEventListener("pointermove", revealControls);
         playerShell.addEventListener(
@@ -2398,38 +2551,44 @@
           true,
         );
         playerControls.addEventListener("focusin", () => {
-          state.controlsLocked = true;
+          if (state.controlsPointerActive || state.seekPointerId !== null) return;
+          state.controlsFocused = true;
           clearControlsTimer();
           playerControls.classList.remove("is-hidden");
         });
         playerControls.addEventListener("focusout", (event) => {
           if (playerControls.contains(event.relatedTarget)) return;
-          state.controlsLocked = false;
+          state.controlsFocused = false;
           scheduleControlsHide();
         });
         playerControls.addEventListener("pointerdown", () => {
-          state.controlsLocked = true;
+          state.controlsPointerActive = true;
           clearControlsTimer();
         });
         ["pointerup", "pointercancel"].forEach((eventName) => {
           playerControls.addEventListener(eventName, () => {
-            state.controlsLocked = false;
+            state.controlsPointerActive = false;
             scheduleControlsHide();
           });
         });
         playerDialog.addEventListener("keydown", (event) => {
+          if (playerControls.contains(document.activeElement)) {
+            state.controlsFocused = true;
+            clearControlsTimer();
+          }
           revealControls();
-          if (event.target instanceof HTMLInputElement || event.target instanceof HTMLButtonElement) return;
           const key = event.key.toLowerCase();
-          if (key === " " || key === "k") {
+          if (key === "arrowleft") {
             event.preventDefault();
-            playButton.click();
-          } else if (key === "arrowleft") {
-            event.preventDefault();
-            rewindButton.click();
+            seekBy(-10);
           } else if (key === "arrowright") {
             event.preventDefault();
-            forwardButton.click();
+            seekBy(10);
+          } else if (event.target instanceof HTMLInputElement || event.target instanceof HTMLButtonElement) {
+            return;
+          } else if (key === " " || key === "k") {
+            event.preventDefault();
+            playButton.click();
           } else if (key === "m") {
             event.preventDefault();
             muteButton.click();
