@@ -1921,6 +1921,8 @@
           controlsTimer: null,
           controlsFocused: false,
           controlsPointerActive: false,
+          controlsPointerId: null,
+          controlsPointerTarget: null,
           seekPointerId: null,
           suppressPlayerClick: false,
         };
@@ -2043,6 +2045,8 @@
           clearControlsTimer();
           state.controlsFocused = false;
           state.controlsPointerActive = false;
+          state.controlsPointerId = null;
+          state.controlsPointerTarget = null;
           state.seekPointerId = null;
           state.suppressPlayerClick = false;
           player.pause();
@@ -2561,15 +2565,30 @@
           state.controlsFocused = false;
           scheduleControlsHide();
         });
-        playerControls.addEventListener("pointerdown", () => {
+        playerControls.addEventListener("pointerdown", (event) => {
+          const control = event.target instanceof Element ? event.target.closest(".vg-player-control") : null;
+          if (!control) return;
           state.controlsPointerActive = true;
+          state.controlsPointerId = event.pointerId;
+          state.controlsPointerTarget = control;
+          control.setPointerCapture?.(event.pointerId);
           clearControlsTimer();
         });
-        ["pointerup", "pointercancel"].forEach((eventName) => {
-          playerControls.addEventListener(eventName, () => {
-            state.controlsPointerActive = false;
-            scheduleControlsHide();
-          });
+
+        const finishControlsPointer = (event) => {
+          if (state.controlsPointerId !== event.pointerId) return;
+          const captureTarget = state.controlsPointerTarget;
+          state.controlsPointerActive = false;
+          state.controlsPointerId = null;
+          state.controlsPointerTarget = null;
+          if (event.type !== "lostpointercapture" && captureTarget?.hasPointerCapture?.(event.pointerId)) {
+            captureTarget.releasePointerCapture(event.pointerId);
+          }
+          scheduleControlsHide();
+        };
+
+        ["pointerup", "pointercancel", "lostpointercapture"].forEach((eventName) => {
+          playerControls.addEventListener(eventName, finishControlsPointer);
         });
         playerDialog.addEventListener("keydown", (event) => {
           if (playerControls.contains(document.activeElement)) {
